@@ -1,33 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-
-type Tip = { id: string; amount: number; note: string; at: number };
-const DENOMINATIONS = [50, 100, 200, 500];
-
-function useLocalStorage<T>(key: string, initial: T) {
-  const [value, setValue] = useState<T>(initial);
-  const [ready, setReady] = useState(false);
-  useEffect(() => { const timer = window.setTimeout(() => { try { const raw = window.localStorage.getItem(key); if (raw) setValue(JSON.parse(raw) as T); } catch { /* local demo can recover with empty state */ } setReady(true); }, 0); return () => window.clearTimeout(timer); }, [key]);
-  useEffect(() => { if (ready) window.localStorage.setItem(key, JSON.stringify(value)); }, [key, value, ready]);
-  return [value, setValue] as const;
-}
-
-function money(value: number) { return `฿${value.toLocaleString("en-US")}`; }
+import { DENOMINATIONS, NO_RAIL_STATUS, createTip, money, tipStore, totalOf } from "@/lib/tip-jar";
 
 export default function Home() {
   const [amount, setAmount] = useState(100);
   const [note, setNote] = useState("Keep shipping demos!");
-  const [tips, setTips] = useLocalStorage<Tip[]>("tip-jar-v2", []);
-  const [status, setStatus] = useState("No payment rail connected. This is a local ledger.");
-  const total = useMemo(() => tips.reduce((sum, tip) => sum + tip.amount, 0), [tips]);
+  const tips = useSyncExternalStore(tipStore.subscribe, tipStore.getSnapshot, tipStore.getServerSnapshot);
+  const setTips = tipStore.set;
+  const [status, setStatus] = useState(NO_RAIL_STATUS);
+  const total = useMemo(() => totalOf(tips), [tips]);
 
   const recordTip = () => {
-    if (!Number.isFinite(amount) || amount <= 0) { setStatus("Enter an amount greater than zero to print a receipt."); return; }
-    const next: Tip = { id: crypto.randomUUID(), amount, note: note.trim() || "No note", at: Date.now() };
-    setTips((items) => [next, ...items]);
-    setStatus(`${money(amount)} recorded in this browser.`);
+    const created = createTip(amount, note, Date.now(), crypto.randomUUID());
+    if ("error" in created) { setStatus(created.error); return; }
+    setTips((items) => [created.tip, ...items]);
+    setStatus(`${money(created.tip.amount)} recorded in this browser.`);
   };
 
   return <main className="tj-page">
