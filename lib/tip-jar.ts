@@ -23,11 +23,23 @@ export function createTip(amount: number, note: string, at: number, id: string):
   return { tip: { id, amount, note: note.trim() || "No note", at } };
 }
 
-/** Tips stored under STORAGE_KEY; anything unreadable becomes an empty ledger. */
+function isTip(value: unknown): value is Tip {
+  if (typeof value !== "object" || value === null) return false;
+  const tip = value as Record<string, unknown>;
+  return (
+    typeof tip.id === "string" &&
+    typeof tip.amount === "number" && Number.isFinite(tip.amount) && tip.amount > 0 &&
+    typeof tip.note === "string" &&
+    typeof tip.at === "number" && Number.isFinite(tip.at)
+  );
+}
+
+/** Tips stored under STORAGE_KEY; broken JSON, non-lists and malformed entries are dropped. */
 export function parseTips(raw: string | null): Tip[] {
   if (!raw) return EMPTY;
   try {
-    return JSON.parse(raw) as Tip[];
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isTip) : EMPTY;
   } catch {
     return EMPTY;
   }
