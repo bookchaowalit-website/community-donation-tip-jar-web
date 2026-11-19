@@ -97,3 +97,55 @@ describe("remove, clear and undo", () => {
     expect($(".as-toast")).toBeNull();
   });
 });
+
+describe("batch Undo", () => {
+  const escape = () => act(() => { $(".as-toast")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); });
+
+  it("consecutive removes restore together with one Undo", () => {
+    vi.useFakeTimers();
+    press(button("฿50")); submit();
+    press(button("฿100")); submit();
+    press(button("฿500")); submit();
+    expect(rows()).toEqual(["฿500", "฿100", "฿50"]);
+    press($('[aria-label="Remove the ฿100 tip"]')!, 1);
+    act(() => { vi.advanceTimersByTime(4000); });
+    press($('[aria-label="Remove the ฿500 tip"]')!, 1);
+    expect(rows()).toEqual(["฿50"]);
+    expect($(".as-toast span")!.textContent).toBe("Removed 2 tips");
+    expect(button("Undo").getAttribute("aria-label")).toBe("Undo remove of 2 tips");
+    // The second removal restarted the 6 s window: 4 s later it is still open.
+    act(() => { vi.advanceTimersByTime(4000); });
+    press(button("Undo"), 1);
+    expect(rows()).toEqual(["฿500", "฿100", "฿50"]);
+    expect($(".as-toast")).toBeNull();
+    expect(host.textContent).toContain("Restored 2 tips.");
+  });
+
+  it("a remove then a clear inside the window restore together, keeping a tip recorded in between", () => {
+    press(button("฿50")); submit();
+    press(button("฿100")); submit();
+    press($('[aria-label="Remove the ฿50 tip"]')!, 1);
+    press(button("฿500")); submit();
+    press(button("Clear ledger"), 1);
+    expect($(".as-toast span")!.textContent).toBe("Removed 3 tips");
+    press(button("Undo"), 1);
+    expect(rows()).toEqual(["฿500", "฿100", "฿50"]);
+  });
+
+  it("keyboard remove focuses Undo; Undo focuses the restored tip, Escape the next one", () => {
+    press(button("฿50")); submit();
+    press(button("฿100")); submit();
+    press($('[aria-label="Remove the ฿100 tip"]')!, 0);
+    expect(document.activeElement).toBe(button("Undo"));
+    press(button("Undo"), 0);
+    expect(document.activeElement).toBe($('[aria-label="Remove the ฿100 tip"]'));
+    press($('[aria-label="Remove the ฿100 tip"]')!, 0);
+    escape();
+    expect(document.activeElement).toBe($('[aria-label="Remove the ฿50 tip"]'));
+    // Nothing left to land on, or a clear: the amount field.
+    press(button("Clear ledger"), 0);
+    expect(document.activeElement).toBe(button("Undo"));
+    press(button("Undo"), 0);
+    expect(document.activeElement).toBe($('input[type="number"]'));
+  });
+});
