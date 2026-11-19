@@ -19,7 +19,7 @@ export function totalOf(tips: Tip[]): number {
 
 /** A new tip, or an error message when the amount is not a positive number. */
 export function createTip(amount: number, note: string, at: number, id: string): { tip: Tip } | { error: string } {
-  if (!Number.isFinite(amount) || amount <= 0) return { error: "Enter an amount greater than zero to print a receipt." };
+  if (!Number.isFinite(amount) || amount <= 0) return { error: "Enter an amount greater than zero to record a tip." };
   return { tip: { id, amount, note: note.trim() || "No note", at } };
 }
 
@@ -106,3 +106,16 @@ export function createTipStore(getStorage: () => Storage | null, key = STORAGE_K
 }
 
 export const tipStore = createTipStore(() => (typeof window === "undefined" ? null : window.localStorage));
+
+/**
+ * Undo for a remove or a clear: the ledger as it was before, with any tip recorded since then kept on top.
+ */
+export function restoreTips(current: Tip[], previous: Tip[]): Tip[] {
+  const before = new Set(previous.map((tip) => tip.id));
+  return [...current.filter((tip) => !before.has(tip.id)), ...previous];
+}
+
+/** "18 Aug 2026" in UTC, so the server and every browser print the same date. */
+export function formatDay(at: number): string {
+  return new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}

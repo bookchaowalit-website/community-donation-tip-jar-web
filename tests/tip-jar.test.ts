@@ -15,7 +15,7 @@ function fakeStorage(initial: Record<string, string> = {}) {
 describe("createTip", () => {
   it("rejects zero, negative and non-numeric amounts", () => {
     for (const amount of [0, -5, Number.NaN, Number.POSITIVE_INFINITY]) {
-      expect(createTip(amount, "hi", 1, "a")).toEqual({ error: "Enter an amount greater than zero to print a receipt." });
+      expect(createTip(amount, "hi", 1, "a")).toEqual({ error: "Enter an amount greater than zero to record a tip." });
     }
   });
 
@@ -85,5 +85,18 @@ describe("createTipStore", () => {
     expect(store.getSnapshot()).toEqual([]);
     store.set([tip("a", 50)]);
     expect(store.getSnapshot()).toEqual([tip("a", 50)]);
+  });
+});
+
+describe("restoreTips and formatDay", () => {
+  it("brings back the previous ledger and keeps tips recorded since on top", async () => {
+    const { restoreTips } = await import("@/lib/tip-jar");
+    const a = tip("a", 1), b = tip("b", 2), c = tip("c", 3);
+    expect(restoreTips([], [a, b])).toEqual([a, b]);
+    expect(restoreTips([c, b], [a, b])).toEqual([c, a, b]);
+  });
+  it("formats in UTC", async () => {
+    const { formatDay } = await import("@/lib/tip-jar");
+    expect(formatDay(Date.UTC(2026, 7, 18, 23))).toBe("18 Aug 2026");
   });
 });

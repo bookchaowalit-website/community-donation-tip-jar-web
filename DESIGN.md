@@ -1,20 +1,17 @@
-# Design direction
+# Design
 
-## Product world
+Since 2026-11-19 the tip jar uses the shared **App shell** (see `APP-SHELL.md`; `app/app-shell.css` and `components/app-shell.tsx` are copied byte for byte
+from the reference site). It replaced the earlier one-off look, whose small uppercase labels, unloaded or
+render-blocking fonts and low-contrast text failed the design floor (review 2026-11-11).
 
-Donation Tip Jar is a tiny cash-register ledger. The receipt strip, register number, denomination buttons, and printed local receipt turn an abstract “tip” into a visible record while staying explicit that no payment rail is connected.
+- One column (`.as-page`): head (h1 and one line on what the page is), the record form as an always-open
+  composer card (amount, common amounts as a segmented control, optional note, **Record tip**), then the
+  ledger with its total, rows newest first and a plain Clear ledger.
+- Record tip is the one filled button and sits in the first phone viewport. A bad amount shows an error
+  under the form and focuses the field.
+- Remove and Clear ledger are undoable for a few seconds (toast with Undo); no confirm dialog.
+- Colours are the shell tokens only; the old purple/yellow palette (and its mismatch with this file) is gone.
 
-## Visual system
-
-- Palette: ink violet `#171329`, warm paper `#f6f0e5`, receipt yellow `#f4c95d`, mint `#b8edca`, and muted lavender `#b8b2d3`.
-- Type: `Space Grotesk` for the human headline and `IBM Plex Mono` for amounts, labels, and ledger details.
-- Composition: offset register card, large left-aligned statement, a denomination rail, and a receipt-like paper trail.
-- Motion: quiet state changes for selected denominations and newly printed receipts, with reduced-motion support.
-
-## Interaction and boundary
-
-Users can choose a denomination, enter an amount and note, then print a local receipt. Entries persist in `localStorage` on the current device. Clear ledger is available only when records exist; there is no charge, transfer, authentication, or server sync.
-
-## Responsive behavior
-
-The register and ledger become a single vertical workflow on small screens. Inputs and denomination controls remain easy to tap, and the receipt list stays within the viewport.
+Floor: Geist via `next/font` (variable on `<html>`), text ≥ 12px, controls ≥ 44px, 4.5:1 text contrast in
+light and dark, 3px focus ring, forced-colors support, no horizontal scroll at 320px. `/more-projects`
+redirects (308) to https://bookchaowalit.com/ and the footer links there.

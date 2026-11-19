@@ -28,7 +28,7 @@ A portfolio visitor who wants to see a small receipt-style ledger UI.
 
 - No Stripe Payment Links or any payment provider, no public wall of thanks, no monetisation across projects (claims
   removed from the portfolio card in the 2026-10 review).
-- No account, server storage or sync. No product analytics beyond Vercel Analytics.
+- No account, server storage or sync. No product analytics.
 
 ## Live URL and deploy state
 
