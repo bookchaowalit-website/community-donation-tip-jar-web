@@ -132,6 +132,38 @@ describe("batch Undo", () => {
     expect(rows()).toEqual(["฿500", "฿100", "฿50"]);
   });
 
+  it("Undo brings back only the tips this tab removed, not one another tab removed meanwhile", () => {
+    press(button("฿50")); submit();
+    press(button("฿100")); submit();
+    press(button("฿500")); submit();
+    press($('[aria-label="Remove the ฿50 tip"]')!, 1);
+    // Another tab removes the ฿100 tip while this tab's Undo is still open.
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as { amount: number }[];
+    act(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored.filter((item) => item.amount !== 100)));
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+    });
+    expect(rows()).toEqual(["฿500"]);
+    press(button("Undo"), 1);
+    expect(rows()).toEqual(["฿500", "฿50"]);
+    expect(host.textContent).toContain("Total ฿550");
+  });
+
+  it("Undo after a clear restores only what the clear removed", () => {
+    press(button("฿50")); submit();
+    press(button("฿100")); submit();
+    // Another tab removes the ฿100 tip before this tab clears the (stale) ledger.
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as { amount: number }[];
+    act(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stored.filter((item) => item.amount !== 100)));
+      window.dispatchEvent(new StorageEvent("storage", { key: STORAGE_KEY }));
+    });
+    press(button("Clear ledger"), 1);
+    expect($(".as-toast span")!.textContent).toBe("Cleared 1 tip");
+    press(button("Undo"), 1);
+    expect(rows()).toEqual(["฿50"]);
+  });
+
   it("keyboard remove focuses Undo; Undo focuses the restored tip, Escape the next one", () => {
     press(button("฿50")); submit();
     press(button("฿100")); submit();

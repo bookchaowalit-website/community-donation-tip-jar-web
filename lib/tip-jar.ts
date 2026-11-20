@@ -115,6 +115,26 @@ export function restoreTips(current: Tip[], previous: Tip[]): Tip[] {
   return [...current.filter((tip) => !before.has(tip.id)), ...previous];
 }
 
+/**
+ * Undo for a batch of removals: puts back only the `removed` tips into the latest ledger, each next to its old
+ * neighbours in `order` (the ledger as this tab knew it). Tips another tab removed meanwhile stay removed, tips
+ * recorded meanwhile stay on top, and a tip already back stays single.
+ */
+export function restoreRemoved(current: Tip[], removed: Tip[], order: Tip[]): Tip[] {
+  const result = [...current];
+  const byId = new Map(removed.map((tip) => [tip.id, tip]));
+  order.forEach((entry, index) => {
+    const tip = byId.get(entry.id);
+    if (!tip || result.some((item) => item.id === tip.id)) return;
+    const at = (id: string) => result.findIndex((item) => item.id === id);
+    let place = -1;
+    for (let i = index - 1; i >= 0 && place < 0; i -= 1) { const found = at(order[i].id); if (found >= 0) place = found + 1; }
+    for (let i = index + 1; i < order.length && place < 0; i += 1) { const found = at(order[i].id); if (found >= 0) place = found; }
+    result.splice(place < 0 ? result.length : place, 0, tip);
+  });
+  return result;
+}
+
 /** "18 Aug 2026" in UTC, so the server and every browser print the same date. */
 export function formatDay(at: number): string {
   return new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });

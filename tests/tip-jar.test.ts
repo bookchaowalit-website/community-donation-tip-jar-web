@@ -95,6 +95,18 @@ describe("restoreTips and formatDay", () => {
     expect(restoreTips([], [a, b])).toEqual([a, b]);
     expect(restoreTips([c, b], [a, b])).toEqual([c, a, b]);
   });
+  it("restoreRemoved puts back only the removed tips, at their old place", async () => {
+    const { restoreRemoved } = await import("@/lib/tip-jar");
+    const a = tip("a", 1), b = tip("b", 2), c = tip("c", 3), d = tip("d", 4);
+    // b was removed here, c by another tab: only b comes back, between a and d.
+    expect(restoreRemoved([a, d], [b], [a, b, c, d])).toEqual([a, b, d]);
+    // After a clear with a tip recorded since: it stays on top.
+    expect(restoreRemoved([d], [a, b], [a, b])).toEqual([d, a, b]);
+    // Already back: stays single.
+    expect(restoreRemoved([a, b], [b], [a, b])).toEqual([a, b]);
+    // No neighbour left: before the next one in the old order.
+    expect(restoreRemoved([c], [a], [a, c])).toEqual([a, c]);
+  });
   it("formats in UTC", async () => {
     const { formatDay } = await import("@/lib/tip-jar");
     expect(formatDay(Date.UTC(2026, 7, 18, 23))).toBe("18 Aug 2026");

@@ -2,13 +2,14 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from "react";
 import { AppFoot, AppTop } from "@/components/app-shell";
-import { DENOMINATIONS, NO_RAIL_STATUS, createTip, formatDay, money, restoreTips, tipStore, totalOf, type Tip } from "@/lib/tip-jar";
+import { DENOMINATIONS, NO_RAIL_STATUS, createTip, formatDay, money, restoreRemoved, restoreTips, tipStore, totalOf, type Tip } from "@/lib/tip-jar";
 
 // One remove or clear inside the Undo window. tipId: the removed tip; nextId / prevId: the rows around it, for focus.
 type Removal = { label: string; tipId?: string; nextId?: string; prevId?: string };
-// Every remove or clear inside the window joins one batch: `previous` is the ledger before the first of them,
-// so one Undo brings back everything removed since (tips recorded meanwhile stay on top).
-type Undo = { previous: Tip[]; removals: Removal[]; removedCount: number; viaKeyboard: boolean };
+// Every remove or clear inside the window joins one batch. `removed` holds only the tips this tab took out, so Undo
+// puts back those and nothing another tab removed meanwhile; `previous` is the ledger before the first of them, used
+// to find each tip's old place (tips recorded meanwhile stay on top).
+type Undo = { previous: Tip[]; removed: Tip[]; removals: Removal[]; removedCount: number; viaKeyboard: boolean };
 const plural = (n: number) => `${n} ${n === 1 ? "tip" : "tips"}`;
 const undoLabel = (undo: Undo) => (undo.removals.length === 1 ? undo.removals[0].label : `Removed ${plural(undo.removedCount)}`);
 
@@ -86,8 +87,8 @@ export default function Home() {
     // A tip recorded since the batch began joins its snapshot, so a later clear can bring it back too.
     const previous = pending ? restoreTips(current, pending.previous) : current;
     const left = new Set(next.map((item) => item.id));
-    const removedCount = previous.filter((item) => !left.has(item.id)).length;
-    const joined = { previous, removals: [...(pending?.removals ?? []), removal], removedCount, viaKeyboard };
+    const removed = [...(pending?.removed ?? []), ...current.filter((item) => !left.has(item.id))];
+    const joined = { previous, removed, removals: [...(pending?.removals ?? []), removal], removedCount: removed.length, viaKeyboard };
     setUndo(joined);
     setTips(next);
     return joined;
@@ -115,7 +116,7 @@ export default function Home() {
   function undoLast() {
     const pending = pendingRef.current;
     if (!pending) return;
-    setTips((items) => restoreTips(items, pending.previous));
+    setTips((items) => restoreRemoved(items, pending.removed, pending.previous));
     setStatus(pending.removals.length === 1 ? "Restored." : `Restored ${plural(pending.removedCount)}.`);
     // Undone: back to the tip removed last (after a clear: the amount field).
     const last = pending.removals.at(-1)?.tipId;
