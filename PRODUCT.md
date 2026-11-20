@@ -30,6 +30,15 @@ A portfolio visitor who wants to see a small receipt-style ledger UI.
   removed from the portfolio card in the 2026-10 review).
 - No account, server storage or sync. No product analytics.
 
+## Known limits
+
+- Remove can overwrite another tab's list: if another tab records a tip between this tab reading the ledger and
+  saving the removal, the save is built from the older ledger, so that new tip is treated as removed and is lost
+  once Undo expires. There is no cross-tab lock (report community-donation-tip-jar-web-5a55a7d1d0, 2026-11-20).
+- Undo order across two tabs: when two tabs each remove a tip and both press Undo, the second Undo places its tip
+  next to the neighbours it knew, not by date, so the ledger can end up out of newest-first order (e.g. `[B, C, A]`
+  instead of `[C, B, A]`). No tip is lost or duplicated (same report).
+
 ## Live URL and deploy state
 
 - Live: https://donation-tip-jar.bookchaowalit.com (HTTP 200 on 2026-10-23).

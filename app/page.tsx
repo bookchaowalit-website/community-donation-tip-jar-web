@@ -141,7 +141,7 @@ export default function Home() {
         <form className="as-composer" onSubmit={record} aria-label="Record a tip" noValidate>
           <div className="tj-amount">
             <label className="as-field">Amount (THB)
-              <input ref={amountRef} type="number" inputMode="numeric" min="1" value={amount} onChange={(event) => { setAmount(event.target.value); setError(""); }} aria-invalid={error ? true : undefined} aria-describedby={error ? "tip-error" : undefined} />
+              <input ref={amountRef} type="number" inputMode="decimal" min="1" value={amount} onChange={(event) => { setAmount(event.target.value); setError(""); }} aria-invalid={error ? true : undefined} aria-describedby={error ? "tip-error" : undefined} />
             </label>
             <div className="as-segmented-wrap">
               <span id="denom-label">Common amounts</span>

@@ -58,6 +58,14 @@ describe("recording", () => {
     expect($('[role="alert"]')).toBeNull();
   });
 
+  it("opens a phone keypad with a decimal point and records an amount with satang", () => {
+    const field = $<HTMLInputElement>('input[type="number"]')!;
+    expect(field.getAttribute("inputmode")).toBe("decimal");
+    type(field, "50.50");
+    submit();
+    expect(rows()).toEqual(["฿50.5"]);
+  });
+
   it("still records without crypto.randomUUID", () => {
     vi.stubGlobal("crypto", {});
     try {
