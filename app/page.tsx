@@ -172,14 +172,14 @@ export default function Home() {
           </div>
           {tips.length ? (
             <ul className="as-list" aria-label="Recorded tips, newest first">
-              {tips.map((tip) => (
+              {tips.map((tip, index) => (
                 <li className="as-row" key={tip.id} data-tip={tip.id}>
                   <div>
                     <h3>{money(tip.amount)}</h3>
                     <p>{tip.note}</p>
-                    <p className="as-row-meta"><time dateTime={new Date(tip.at).toISOString()}>{formatDay(tip.at)}</time></p>
+                    <p className="as-row-meta"><time dateTime={new Date(tip.at).toISOString()} suppressHydrationWarning>{formatDay(tip.at)}</time></p>
                   </div>
-                  <button type="button" className="as-plain as-danger" aria-label={`Remove the ${money(tip.amount)} tip`} onClick={(event) => removeTip(tip, event.detail === 0)}>Remove</button>
+                  <button type="button" className="as-plain as-danger" aria-label={`Remove tip ${index + 1} of ${tips.length}: ${money(tip.amount)}, ${tip.note}, ${formatDay(tip.at)}`} onClick={(event) => removeTip(tip, event.detail === 0)}>Remove</button>
                 </li>
               ))}
             </ul>

@@ -135,7 +135,10 @@ export function restoreRemoved(current: Tip[], removed: Tip[], order: Tip[]): Ti
   return result;
 }
 
-/** "18 Aug 2026" in UTC, so the server and every browser print the same date. */
+/**
+ * "18 Aug 2026" in the reader's own time zone (the day the tip was recorded there, not the UTC day). Tips render
+ * only after mount (the server snapshot is an empty ledger), so this never runs during hydration.
+ */
 export function formatDay(at: number): string {
-  return new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  return new Date(at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }

@@ -13,6 +13,8 @@ const $ = <T extends Element = HTMLElement>(selector: string) => host.querySelec
 const button = (text: string) => [...host.querySelectorAll("button")].find((b) => b.textContent?.trim().startsWith(text)) as HTMLButtonElement;
 const rows = () => [...host.querySelectorAll(".as-row h3")].map((h) => h.textContent);
 const press = (el: Element, detail = 0) => act(() => { el.dispatchEvent(new MouseEvent("click", { bubbles: true, detail })); });
+// Remove buttons are named "Remove tip N of M: ฿amount, note, date"; these tests use distinct amounts.
+const removeOf = (amount: string) => [...host.querySelectorAll<HTMLButtonElement>(".as-row .as-danger")].find((b) => b.getAttribute("aria-label")?.includes(`: ${amount},`)) as HTMLButtonElement;
 const submit = () => act(() => { $<HTMLFormElement>(".as-composer")!.requestSubmit(); });
 function type(el: HTMLInputElement, value: string) {
   act(() => {
@@ -68,10 +70,21 @@ describe("recording", () => {
 });
 
 describe("remove, clear and undo", () => {
+  it("Remove buttons tell tips with the same amount apart", () => {
+    type($<HTMLInputElement>('input[maxlength="140"]')!, "First");
+    submit();
+    type($<HTMLInputElement>('input[maxlength="140"]')!, "Second");
+    submit();
+    const names = [...host.querySelectorAll(".as-row .as-danger")].map((b) => b.getAttribute("aria-label"));
+    expect(new Set(names).size).toBe(2);
+    expect(names[0]).toMatch(/^Remove tip 1 of 2: ฿100, Second, /);
+    expect(names[1]).toMatch(/^Remove tip 2 of 2: ฿100, First, /);
+  });
+
   it("Remove is undoable and keeps the order", () => {
     press(button("฿50")); submit();
     press(button("฿500")); submit();
-    press($('[aria-label="Remove the ฿50 tip"]')!);
+    press(removeOf("฿50"));
     expect(rows()).toEqual(["฿500"]);
     expect(document.activeElement).toBe(button("Undo"));
     press(button("Undo"));
@@ -107,9 +120,9 @@ describe("batch Undo", () => {
     press(button("฿100")); submit();
     press(button("฿500")); submit();
     expect(rows()).toEqual(["฿500", "฿100", "฿50"]);
-    press($('[aria-label="Remove the ฿100 tip"]')!, 1);
+    press(removeOf("฿100"), 1);
     act(() => { vi.advanceTimersByTime(4000); });
-    press($('[aria-label="Remove the ฿500 tip"]')!, 1);
+    press(removeOf("฿500"), 1);
     expect(rows()).toEqual(["฿50"]);
     expect($(".as-toast span")!.textContent).toBe("Removed 2 tips");
     expect(button("Undo").getAttribute("aria-label")).toBe("Undo remove of 2 tips");
@@ -124,7 +137,7 @@ describe("batch Undo", () => {
   it("a remove then a clear inside the window restore together, keeping a tip recorded in between", () => {
     press(button("฿50")); submit();
     press(button("฿100")); submit();
-    press($('[aria-label="Remove the ฿50 tip"]')!, 1);
+    press(removeOf("฿50"), 1);
     press(button("฿500")); submit();
     press(button("Clear ledger"), 1);
     expect($(".as-toast span")!.textContent).toBe("Removed 3 tips");
@@ -136,7 +149,7 @@ describe("batch Undo", () => {
     press(button("฿50")); submit();
     press(button("฿100")); submit();
     press(button("฿500")); submit();
-    press($('[aria-label="Remove the ฿50 tip"]')!, 1);
+    press(removeOf("฿50"), 1);
     // Another tab removes the ฿100 tip while this tab's Undo is still open.
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as { amount: number }[];
     act(() => {
@@ -167,13 +180,13 @@ describe("batch Undo", () => {
   it("keyboard remove focuses Undo; Undo focuses the restored tip, Escape the next one", () => {
     press(button("฿50")); submit();
     press(button("฿100")); submit();
-    press($('[aria-label="Remove the ฿100 tip"]')!, 0);
+    press(removeOf("฿100"), 0);
     expect(document.activeElement).toBe(button("Undo"));
     press(button("Undo"), 0);
-    expect(document.activeElement).toBe($('[aria-label="Remove the ฿100 tip"]'));
-    press($('[aria-label="Remove the ฿100 tip"]')!, 0);
+    expect(document.activeElement).toBe(removeOf("฿100"));
+    press(removeOf("฿100"), 0);
     escape();
-    expect(document.activeElement).toBe($('[aria-label="Remove the ฿50 tip"]'));
+    expect(document.activeElement).toBe(removeOf("฿50"));
     // Nothing left to land on, or a clear: the amount field.
     press(button("Clear ledger"), 0);
     expect(document.activeElement).toBe(button("Undo"));

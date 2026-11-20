@@ -107,8 +107,17 @@ describe("restoreTips and formatDay", () => {
     // No neighbour left: before the next one in the old order.
     expect(restoreRemoved([c], [a], [a, c])).toEqual([a, c]);
   });
-  it("formats in UTC", async () => {
+  it("formats in the browser time zone", async () => {
     const { formatDay } = await import("@/lib/tip-jar");
-    expect(formatDay(Date.UTC(2026, 7, 18, 23))).toBe("18 Aug 2026");
+    const saved = process.env.TZ;
+    try {
+      // 01:00 on 20 Nov in Bangkok is still 19 Nov in UTC: the reader sees the day the tip was recorded.
+      process.env.TZ = "Asia/Bangkok";
+      expect(formatDay(Date.UTC(2026, 10, 19, 18))).toBe("20 Nov 2026");
+      process.env.TZ = "America/New_York";
+      expect(formatDay(Date.UTC(2026, 10, 19, 3))).toBe("18 Nov 2026");
+    } finally {
+      if (saved === undefined) delete process.env.TZ; else process.env.TZ = saved;
+    }
   });
 });
